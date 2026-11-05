@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>People</title>
+<style>
+  :root {
+    --bg: #f5f5f7; --surface: #ffffff; --surface-2: #ebebf0; --text: #1d1d1f; --text-2: #6e6e73;
+    --text-3: #aeaeb2; --accent: #007aff; --accent-soft: rgba(0,122,255,.12); --danger: #ff3b30;
+    --bar: rgba(245,245,247,.72); --hair: rgba(0,0,0,.08); --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.08);
+    --ring: 0 0 0 4px var(--accent-soft);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000000; --surface: #1c1c1e; --surface-2: #2c2c2e; --text: #f5f5f7; --text-2: #98989d;
+      --text-3: #636366; --accent: #0a84ff; --accent-soft: rgba(10,132,255,.22); --danger: #ff453a;
+      --bar: rgba(22,22,23,.72); --hair: rgba(255,255,255,.1); --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.45);
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body {
+    font: 14px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input { font: inherit; color: inherit; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 0 28px; }
+
+  /* toolbar */
+  .bar { position: sticky; top: 0; z-index: 10; background: var(--bar); border-bottom: 1px solid var(--hair);
+         backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); }
+  .bar .wrap { display: flex; align-items: center; gap: 12px; height: 56px; }
+  .search { flex: 1; max-width: 340px; position: relative; }
+  .search input { width: 100%; height: 34px; border: 0; border-radius: 10px; padding: 0 12px 0 34px;
+                  background: var(--surface-2); outline: none; transition: box-shadow .15s; }
+  .search input:focus { box-shadow: var(--ring); }
+  .search svg { position: absolute; left: 11px; top: 9px; width: 16px; height: 16px; color: var(--text-2); }
+  .seg { display: inline-flex; background: var(--surface-2); border-radius: 9px; padding: 2px; }
+  .seg button { border: 0; background: none; padding: 5px 14px; border-radius: 7px; cursor: pointer; color: var(--text-2);
+                font-weight: 500; transition: background .2s, color .2s; }
+  .seg button.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .spacer { flex: 1; }
+  .btn { border: 0; background: var(--accent-soft); color: var(--accent); font-weight: 600; height: 32px; padding: 0 14px;
+         border-radius: 16px; cursor: pointer; white-space: nowrap; transition: filter .15s, transform .1s; }
+  .btn:hover { filter: brightness(1.08); }
+  .btn:active { transform: scale(.97); }
+  .btn.solid { background: var(--accent); color: #fff; }
+  .link { border: 0; background: none; color: var(--accent); cursor: pointer; font-size: 15px; padding: 6px 4px;
+          display: inline-flex; align-items: center; gap: 2px; }
+
+  /* headings */
+  h1 { font-size: 34px; line-height: 1.1; letter-spacing: -.02em; margin: 28px 0 4px; font-weight: 700; }
+  .sub { color: var(--text-2); margin: 0 0 24px; font-size: 15px; }
+  .sub.model { margin-top: -18px; font-size: 13px; }
+  .sub.model b { color: var(--text); font-weight: 600; }
+
+  /* people grid */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(136px, 1fr)); gap: 28px 18px; padding-bottom: 60px; }
+  .person { display: flex; flex-direction: column; align-items: center; text-align: center; cursor: pointer;
+            border: 0; background: none; padding: 0; animation: rise .35s ease both; }
+  .avatar { width: 116px; height: 116px; border-radius: 50%; overflow: hidden; background: var(--surface-2);
+            box-shadow: var(--shadow); transition: transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s; }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .person:hover .avatar { transform: scale(1.05); }
+  .person:focus-visible .avatar { box-shadow: var(--ring), var(--shadow); }
+  .person:focus { outline: none; }
+  .pname { margin-top: 10px; font-weight: 600; font-size: 14px; max-width: 136px; overflow: hidden;
+           text-overflow: ellipsis; white-space: nowrap; }
+  .pname.add { color: var(--accent); font-weight: 500; }
+  .pcount { color: var(--text-2); font-size: 12.5px; margin-top: 1px; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+  .empty { color: var(--text-2); text-align: center; padding: 80px 0; font-size: 15px; }
+
+  /* person detail */
+  .detail-head { display: flex; align-items: center; gap: 22px; margin: 22px 0 26px; flex-wrap: wrap; }
+  .detail-head .avatar { width: 96px; height: 96px; }
+  .name-field { font-size: 30px; font-weight: 700; letter-spacing: -.02em; border: 0; background: none; padding: 2px 8px;
+                margin-left: -8px; border-radius: 8px; width: min(420px, 70vw); outline: none; transition: background .15s, box-shadow .15s; }
+  .name-field:hover { background: var(--surface-2); }
+  .name-field:focus { background: var(--surface); box-shadow: var(--ring); }
+  .name-field::placeholder { color: var(--text-3); }
+  .name-field::-webkit-calendar-picker-indicator { display: none !important; }
+  .hint { color: var(--text-2); font-size: 13px; margin-top: 4px; min-height: 18px; }
+  .hint b { color: var(--text); }
+  .merge { display: none; align-items: center; gap: 8px; margin-top: 8px; }
+  .merge.show { display: flex; }
+  .photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 3px; border-radius: 14px; overflow: hidden; }
+  .tile { position: relative; aspect-ratio: 1; background: var(--surface-2); cursor: zoom-in; overflow: hidden; }
+  .tile img, .tile video { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .35s ease, opacity .3s; opacity: 0; }
+  .tile .ready { opacity: 1; }
+  .tile:hover img, .tile:hover video { transform: scale(1.04); }
+  .badge { position: absolute; right: 7px; bottom: 7px; width: 22px; height: 22px; border-radius: 50%;
+           background: rgba(0,0,0,.45); backdrop-filter: blur(8px); display: grid; place-items: center; }
+  .badge svg { width: 10px; height: 10px; fill: #fff; margin-left: 2px; }
+  .more { display: flex; justify-content: center; padding: 26px 0 60px; }
+
+  /* viewer */
+  .viewer { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.92); display: none;
+            align-items: center; justify-content: center; animation: fade .2s ease; }
+  .viewer.show { display: flex; }
+  .viewer img, .viewer video { max-width: 92vw; max-height: 88vh; border-radius: 6px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+  .vbtn { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; border: 0;
+          background: rgba(255,255,255,.14); color: #fff; font-size: 24px; cursor: pointer; backdrop-filter: blur(10px); }
+  .vbtn:hover { background: rgba(255,255,255,.24); }
+  .vprev { left: 22px; } .vnext { right: 22px; }
+  .vclose { top: 22px; right: 22px; transform: none; font-size: 20px; }
+  .vcap { position: absolute; bottom: 18px; color: rgba(255,255,255,.7); font-size: 12.5px; }
+  @keyframes fade { from { opacity: 0; } }
+
+  /* toast */
+  .toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px); opacity: 0; z-index: 60;
+           background: var(--surface); color: var(--text); padding: 10px 18px; border-radius: 22px; box-shadow: var(--shadow);
+           font-weight: 500; transition: opacity .25s, transform .25s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .toast.err { color: var(--danger); }
+
+  /* selection */
+  .tile .check { position: absolute; z-index: 2; left: 8px; top: 8px; width: 24px; height: 24px; border-radius: 50%;
+                 border: 2px solid rgba(255,255,255,.9); background: rgba(0,0,0,.25); display: none;
+                 box-shadow: 0 1px 4px rgba(0,0,0,.4); transition: background .15s, transform .15s; }
+  .photos.selecting .tile { cursor: pointer; }
+  .photos.selecting .tile .check { display: grid; place-items: center; }
+  .tile.sel .check { background: var(--accent); border-color: #fff; }
+  .tile.sel .check::after { content: ""; width: 6px; height: 11px; border: solid #fff; border-width: 0 2.5px 2.5px 0;
+                            transform: rotate(45deg) translate(-1px, -1px); }
+  .tile.sel img, .tile.sel video { transform: scale(.9); border-radius: 10px; }
+  .photos.selecting .tile:hover img, .photos.selecting .tile:hover video { transform: none; }
+  .photos.selecting .tile.sel:hover img, .photos.selecting .tile.sel:hover video { transform: scale(.9); }
+  .actionbar { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 90px); z-index: 40;
+               display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 18px; border-radius: 26px;
+               background: var(--bar); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px);
+               border: 1px solid var(--hair); box-shadow: 0 12px 40px rgba(0,0,0,.18); transition: transform .3s cubic-bezier(.2,.8,.2,1); }
+  .actionbar.show { transform: translate(-50%, 0); }
+  .actionbar .count { font-weight: 600; margin-right: 6px; white-space: nowrap; }
+  .btn.ghost { background: transparent; color: var(--text-2); }
+  .btn.ghost:hover { background: var(--surface-2); }
+  .btn.red { background: rgba(255,59,48,.12); color: var(--danger); }
+
+  /* sheet (Move to…) */
+  .sheet-bg { position: fixed; inset: 0; z-index: 45; background: rgba(0,0,0,.35); display: none; align-items: flex-end;
+              justify-content: center; animation: fade .2s; }
+  .sheet-bg.show { display: flex; }
+  .sheet { width: min(560px, 100%); max-height: 78vh; background: var(--surface); border-radius: 18px 18px 0 0;
+           box-shadow: 0 -10px 40px rgba(0,0,0,.25); display: flex; flex-direction: column; animation: up .3s cubic-bezier(.2,.8,.2,1); }
+  @media (min-width: 640px) { .sheet-bg { align-items: center; } .sheet { border-radius: 18px; } }
+  @keyframes up { from { transform: translateY(30px); opacity: 0; } }
+  .sheet h2 { font-size: 17px; margin: 0; padding: 18px 20px 6px; }
+  .sheet .sub { padding: 0 20px; margin-bottom: 10px; font-size: 13px; }
+  .sheet .search { margin: 0 16px 10px; max-width: none; }
+  .newrow { display: flex; gap: 8px; margin: 0 16px 12px; }
+  .newrow input { flex: 1; height: 36px; border: 0; border-radius: 10px; padding: 0 12px; background: var(--surface-2); outline: none; }
+  .newrow input:focus { box-shadow: var(--ring); }
+  .list { overflow-y: auto; padding: 0 8px 12px; }
+  .row { display: flex; align-items: center; gap: 12px; width: 100%; border: 0; background: none; padding: 7px 10px;
+         border-radius: 10px; cursor: pointer; text-align: left; }
+  .row:hover { background: var(--surface-2); }
+  .row .avatar { width: 40px; height: 40px; box-shadow: none; flex: none; }
+  .row .rn { font-weight: 600; } .row .rc { color: var(--text-2); font-size: 12.5px; }
+  .row .rn.add { color: var(--text-2); font-weight: 500; }
+  .sheet .foot { padding: 10px 16px 16px; display: flex; justify-content: flex-end; border-top: 1px solid var(--hair); }
+
+  /* suggestions */
+  #suggestBox { margin: 6px 0 80px; padding-top: 26px; border-top: 1px solid var(--hair); }
+  .sg-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+  .sg-title { font-size: 22px; letter-spacing: -.01em; margin: 0 0 4px; }
+  .sg-sub { margin: 0; font-size: 13.5px; max-width: 560px; }
+  .sg-actions { display: flex; gap: 8px; }
+  .btn:disabled { opacity: .4; cursor: default; filter: none; transform: none; }
+  .tile .score { position: absolute; left: 8px; bottom: 7px; font-size: 11px; font-weight: 600; color: #fff;
+                 background: rgba(0,0,0,.45); backdrop-filter: blur(8px); padding: 1px 7px; border-radius: 10px; }
+
+  /* re-sort progress */
+  .progress { display: none; align-items: center; gap: 10px; color: var(--text-2); font-size: 13px; margin: -14px 0 22px; }
+  .progress.show { display: flex; }
+  .spin { width: 14px; height: 14px; border: 2px solid var(--hair); border-top-color: var(--accent); border-radius: 50%;
+          animation: spin .8s linear infinite; flex: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .progress code { font: 12px ui-monospace, Consolas, monospace; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 0 16px; }
+    .seg button { padding: 5px 9px; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 20px 10px; }
+    .avatar { width: 88px; height: 88px; }
+    .photos { grid-template-columns: repeat(3, 1fr); }
+    #openAll { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="bar">
+  <div class="wrap" id="barPeople">
+    <div class="search">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="7" cy="7" r="5"/><path d="m11 11 3.5 3.5" stroke-linecap="round"/></svg>
+      <input id="q" type="search" placeholder="Search" autocomplete="off">
+    </div>
+    <div class="seg" id="seg">
+      <button data-f="all" class="on">All</button><button data-f="unnamed">Unnamed</button><button data-f="named">Named</button>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" id="train" title="Learn the people you have named (takes seconds)">Train</button>
+    <button class="btn solid" id="resort" hidden title="Re-sort every photo using your corrections">Re-sort</button>
+    <button class="btn" id="openAll">Show in Explorer</button>
+  </div>
+  <div class="wrap" id="barDetail" hidden>
+    <button class="link" id="back"><svg width="12" height="18" viewBox="0 0 12 18"><path d="M10 2 3 9l7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>People</button>
+    <div class="spacer"></div>
+    <button class="btn" id="select">Select</button>
+    <button class="btn" id="openOne">Show in Explorer</button>
+  </div>
+</div>
+
+<main class="wrap">
+  <section id="peopleView">
+    <h1>People</h1>
+    <p class="sub" id="summary">Loading…</p>
+    <p class="sub model" id="model" hidden></p>
+    <div class="progress" id="progress"><span class="spin"></span><code id="progressLine"></code></div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section id="detailView" hidden>
+    <div class="detail-head">
+      <div class="avatar"><img id="dAvatar" alt=""></div>
+      <div>
+        <input class="name-field" id="dName" placeholder="Add Name" autocomplete="off" list="names" spellcheck="false">
+        <datalist id="names"></datalist>
+        <div class="hint" id="dHint"></div>
+        <div class="merge" id="mergeBox">
+          <button class="btn solid" id="mergeYes">Merge</button><button class="btn" id="mergeNo">Cancel</button>
+        </div>
+      </div>
+    </div>
+    <div class="photos" id="photos"></div>
+    <div class="more"><button class="btn" id="more" hidden>Show More</button></div>
+
+    <div id="suggestBox" hidden>
+      <div class="sg-head">
+        <div>
+          <h2 class="sg-title">Might also be <span id="sgName"></span></h2>
+          <p class="sub sg-sub">Photos without a recognisable face that look like theirs: same phone, room, mirror, hair or clothes. Tap the ones that are them.</p>
+        </div>
+        <div class="sg-actions">
+          <button class="btn ghost" id="sgAll">Select All</button>
+          <button class="btn red" id="sgNo" disabled>Not Them</button>
+          <button class="btn solid" id="sgYes" disabled>Add</button>
+        </div>
+      </div>
+      <div class="photos selecting" id="sgGrid"></div>
+      <p class="empty" id="sgEmpty" hidden></p>
+    </div>
+  </section>
+</main>
+
+<div class="viewer" id="viewer">
+  <button class="vbtn vclose" id="vClose" aria-label="Close">✕</button>
+  <button class="vbtn vprev" id="vPrev" aria-label="Previous">‹</button>
+  <div id="vBody"></div>
+  <button class="vbtn vnext" id="vNext" aria-label="Next">›</button>
+  <div class="vcap" id="vCap"></div>
+</div>
+<div class="actionbar" id="actionbar">
+  <span class="count" id="selCount">0 selected</span>
+  <button class="btn solid" id="moveBtn">Move to…</button>
+  <button class="btn red" id="removeBtn" title="Not this person: move to Unassigned">Remove</button>
+  <button class="btn ghost" id="cancelSel">Cancel</button>
+</div>
+
+<div class="sheet-bg" id="sheetBg">
+  <div class="sheet" role="dialog" aria-label="Move to">
+    <h2 id="sheetTitle">Move to…</h2>
+    <p class="sub" id="sheetSub"></p>
+    <div class="newrow">
+      <input id="newName" placeholder="New person’s name" autocomplete="off" spellcheck="false">
+      <button class="btn solid" id="newGo">Create &amp; Move</button>
+    </div>
+    <div class="search">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="7" cy="7" r="5"/><path d="m11 11 3.5 3.5" stroke-linecap="round"/></svg>
+      <input id="sheetQ" type="search" placeholder="Search people" autocomplete="off">
+    </div>
+    <div class="list" id="sheetList"></div>
+    <div class="foot"><button class="btn ghost" id="sheetClose">Cancel</button></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const enc = encodeURIComponent;
+const PLAY = '<svg viewBox="0 0 10 12"><path d="M0 0l10 6-10 6z"/></svg>';
+let people = [], filter = "all", current = null, loaded = [], total = 0;
+
+const fmt = (n) => n.toLocaleString();
+const isUnnamed = (p) => !p.named;
+const label = (p) => p.named ? p.name : "Add Name";
+
+function toast(msg, err) {
+  const t = $("toast"); t.textContent = msg; t.className = "toast show" + (err ? " err" : "");
+  clearTimeout(t._h); t._h = setTimeout(() => t.className = "toast", 2400);
+}
+
+async function api(path, body) {
+  const r = await fetch(path, body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {});
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || "Request failed");
+  return data;
+}
+
+async function loadPeople() {
+  const d = await api("/api/people");
+  people = d.people;
+  const named = people.filter((p) => p.named).length;
+  unknownCount = d.unknown;
+  $("summary").textContent = `${fmt(people.length)} people · ${fmt(named)} named · ${fmt(d.unknown)} unassigned photos` +
+    (d.corrections ? ` · ${fmt(d.corrections)} corrections` : "");
+  $("names").innerHTML = people.filter((p) => p.named).map((p) => `<option value="${escapeHtml(p.name)}">`).join("");
+  $("resort").hidden = !d.can_resort;
+  showModel(d.classifier);
+  if (d.resort && d.resort.running) watchResort();
+  renderGrid();
+}
+let unknownCount = 0;
+
+function escapeHtml(s) { return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+function renderGrid() {
+  const q = $("q").value.trim().toLowerCase();
+  const list = people.filter((p) =>
+    (filter === "all" || (filter === "named") === p.named) && (!q || (p.named && p.name.toLowerCase().includes(q))));
+  $("grid").innerHTML = list.length ? list.map((p, i) => `
+    <button class="person" data-name="${escapeHtml(p.name)}" style="animation-delay:${Math.min(i, 30) * 12}ms">
+      <div class="avatar">${p.thumb ? `<img loading="lazy" src="/thumb/${enc(p.name)}" alt="">` : ""}</div>
+      <div class="pname ${p.named ? "" : "add"}">${escapeHtml(label(p))}</div>
+      <div class="pcount">${fmt(p.files)} ${p.files === 1 ? "item" : "items"}</div>
+    </button>`).join("") : `<div class="empty">${q ? "No named people match your search." : "Nobody here yet."}</div>`;
+}
+
+$("grid").addEventListener("click", (e) => {
+  const b = e.target.closest(".person"); if (b) openPerson(b.dataset.name);
+});
+$("seg").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  filter = b.dataset.f; [...$("seg").children].forEach((x) => x.classList.toggle("on", x === b)); renderGrid();
+});
+$("q").addEventListener("input", renderGrid);
+
+/* ---------- person detail ---------- */
+async function openPerson(name, push = true) {
+  const p = people.find((x) => x.name === name); if (!p) return showPeople(false);
+  current = p; loaded = []; total = 0;
+  if (push) history.pushState({ person: name }, "", "#" + enc(name));
+  $("peopleView").hidden = true; $("barPeople").hidden = true;
+  $("detailView").hidden = false; $("barDetail").hidden = false;
+  endSelect();
+  $("dAvatar").src = p.thumb ? `/thumb/${enc(p.name)}` : "";
+  $("dName").value = p.named ? p.name : "";
+  setHint(); hideMerge();
+  $("photos").innerHTML = ""; window.scrollTo(0, 0);
+  await loadMore();
+  loadSuggestions();
+}
+
+/* ---------- suggestions (look-alike photos without a usable face) ---------- */
+let sgItems = [], sgSel = new Set();
+async function loadSuggestions() {
+  const name = current.name;
+  sgItems = []; sgSel.clear(); updateSg();
+  $("sgGrid").innerHTML = ""; $("sgEmpty").hidden = true;
+  $("sgName").textContent = current.named ? current.name : "this person";
+  let d;
+  try { d = await api(`/api/suggest/${enc(name)}`); } catch { $("suggestBox").hidden = true; return; }
+  if (!current || current.name !== name) return;
+  if (!d.ready) { $("suggestBox").hidden = true; return; }
+  $("suggestBox").hidden = false;
+  sgItems = d.items;
+  if (!sgItems.length) { $("sgEmpty").hidden = false; $("sgEmpty").textContent = "No look-alike photos left to review."; return; }
+  $("sgGrid").innerHTML = sgItems.map((f, i) => `
+    <div class="tile" data-k="${i}">
+      <span class="check"></span>
+      ${f.video ? `<video muted preload="none" playsinline data-src="/cand/${f.id}#t=0.5"></video><span class="badge">${PLAY}</span>`
+                : `<img loading="lazy" src="/cand/${f.id}" alt="" onload="this.classList.add('ready')">`}
+      <span class="score">${Math.round(f.score * 100)}%</span>
+    </div>`).join("");
+  $("sgGrid").querySelectorAll("video[data-src]").forEach((v) => io.observe(v));
+}
+function updateSg() {
+  $("sgYes").disabled = $("sgNo").disabled = !sgSel.size;
+  $("sgYes").textContent = sgSel.size ? `Add ${sgSel.size}` : "Add";
+  $("sgAll").textContent = sgItems.length && sgSel.size === sgItems.length ? "Select None" : "Select All";
+  $("sgGrid").querySelectorAll(".tile").forEach((t) => t.classList.toggle("sel", sgSel.has(+t.dataset.k)));
+}
+$("sgGrid").addEventListener("click", (e) => {
+  const t = e.target.closest(".tile"); if (!t) return;
+  const k = +t.dataset.k; sgSel.has(k) ? sgSel.delete(k) : sgSel.add(k); updateSg();
+});
+$("sgGrid").addEventListener("mouseover", (e) => { const v = e.target.closest(".tile")?.querySelector("video"); if (v && v.src) v.play().catch(() => {}); });
+$("sgGrid").addEventListener("mouseout", (e) => { const v = e.target.closest(".tile")?.querySelector("video"); if (v) v.pause(); });
+$("sgAll").onclick = () => {
+  if (sgSel.size === sgItems.length) sgSel.clear(); else sgItems.forEach((_, i) => sgSel.add(i));
+  updateSg();
+};
+async function decideSg(add) {
+  const ids = [...sgSel].map((k) => sgItems[k].id), name = current.name;
+  if (!ids.length) return;
+  try {
+    await api(add ? "/api/suggest/add" : "/api/suggest/dismiss", { name, ids });
+  } catch (err) { toast(err.message, true); return; }
+  toast(add ? `Added ${ids.length} to ${current.named ? current.name : "this person"}` : `Won’t suggest those ${ids.length} again`);
+  if (add) { await loadPeople(); openPerson(name, false); } else loadSuggestions();
+}
+$("sgYes").onclick = () => decideSg(true);
+$("sgNo").onclick = () => decideSg(false);
+
+function setHint(html) {
+  $("dHint").innerHTML = html || `${fmt(current.files)} ${current.files === 1 ? "item" : "items"} · press Enter to save`;
+}
+
+async function loadMore() {
+  const name = current.name;
+  const d = await api(`/api/person/${enc(name)}?offset=${loaded.length}&limit=120`);
+  if (current.name !== name) return;
+  total = d.total;
+  const start = loaded.length; loaded.push(...d.files);
+  $("photos").insertAdjacentHTML("beforeend", d.files.map((f, i) => `
+    <div class="tile" data-i="${start + i}">
+      <span class="check"></span>
+      ${f.video ? `<video muted preload="none" playsinline data-src="/media/${enc(name)}/${enc(f.name)}#t=0.5"></video><span class="badge">${PLAY}</span>`
+                : `<img loading="lazy" src="/media/${enc(name)}/${enc(f.name)}" alt="" onload="this.classList.add('ready')">`}
+    </div>`).join(""));
+  $("photos").querySelectorAll("video[data-src]").forEach((v) => io.observe(v));
+  $("more").hidden = loaded.length >= total;
+}
+const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+  if (!e.isIntersecting) return;
+  const v = e.target; v.src = v.dataset.src; v.removeAttribute("data-src"); v.preload = "metadata";
+  v.addEventListener("loadeddata", () => v.classList.add("ready"), { once: true });
+  io.unobserve(v);
+}), { rootMargin: "400px" });
+
+$("more").onclick = loadMore;
+$("photos").addEventListener("click", (e) => {
+  const t = e.target.closest(".tile"); if (!t) return;
+  if (selecting) toggleSel(+t.dataset.i, e.shiftKey); else openViewer(+t.dataset.i);
+});
+$("photos").addEventListener("mouseover", (e) => { const v = e.target.closest(".tile")?.querySelector("video"); if (v && v.src) v.play().catch(() => {}); });
+$("photos").addEventListener("mouseout", (e) => { const v = e.target.closest(".tile")?.querySelector("video"); if (v) v.pause(); });
+
+/* rename / merge */
+let pendingMerge = null;
+function hideMerge() { pendingMerge = null; $("mergeBox").classList.remove("show"); }
+
+$("dName").addEventListener("keydown", (e) => {
+  if (e.key === "Escape") { $("dName").value = current.named ? current.name : ""; $("dName").blur(); hideMerge(); setHint(); }
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  const name = $("dName").value.trim();
+  if (!name || name === current.name) return;
+  const target = people.find((p) => p.name.toLowerCase() === name.toLowerCase() && p.name !== current.name);
+  if (target) {
+    pendingMerge = target.name;
+    setHint(`<b>${escapeHtml(target.name)}</b> already exists. Merge these ${fmt(current.files)} items into them?`);
+    $("mergeBox").classList.add("show"); $("mergeYes").focus();
+    return;
+  }
+  rename(name);
+});
+$("dName").addEventListener("input", () => { if (pendingMerge) { hideMerge(); setHint(); } });
+$("mergeYes").onclick = () => rename(pendingMerge, true);
+$("mergeNo").onclick = () => { hideMerge(); setHint(); $("dName").focus(); };
+
+async function rename(to, merged) {
+  const from = current.name;
+  try {
+    await api("/api/rename", { mapping: { [from]: to } });
+  } catch (err) { setHint(); toast(err.message, true); return; }
+  hideMerge(); $("dName").blur();
+  toast(merged ? `Merged into ${to}` : `Named ${to}`);
+  await loadPeople();
+  history.replaceState({ person: to }, "", "#" + enc(to));
+  openPerson(to, false);
+}
+
+/* ---------- selection / move ---------- */
+let selecting = false, selected = new Set(), lastSel = null;
+function startSelect() {
+  selecting = true; $("photos").classList.add("selecting"); $("select").textContent = "Done"; updateBar();
+}
+function endSelect() {
+  selecting = false; selected.clear(); lastSel = null;
+  $("photos").classList.remove("selecting"); $("select").textContent = "Select";
+  $("photos").querySelectorAll(".tile.sel").forEach((t) => t.classList.remove("sel"));
+  $("actionbar").classList.remove("show");
+}
+function toggleSel(i, range) {
+  if (range && lastSel !== null) {
+    const [a, b] = [Math.min(lastSel, i), Math.max(lastSel, i)];
+    for (let k = a; k <= b; k++) selected.add(k);
+  } else if (selected.has(i)) selected.delete(i); else selected.add(i);
+  lastSel = i;
+  $("photos").querySelectorAll(".tile").forEach((t) => t.classList.toggle("sel", selected.has(+t.dataset.i)));
+  updateBar();
+}
+function updateBar() {
+  $("selCount").textContent = `${selected.size} selected`;
+  $("actionbar").classList.toggle("show", selecting && selected.size > 0);
+}
+$("select").onclick = () => selecting ? endSelect() : startSelect();
+$("cancelSel").onclick = endSelect;
+document.addEventListener("keydown", (e) => {
+  if (!selecting || $("sheetBg").classList.contains("show") || e.target.tagName === "INPUT") return;
+  if (e.key === "Escape") endSelect();
+  if ((e.ctrlKey || e.metaKey) && e.key === "a") {
+    e.preventDefault();
+    loaded.forEach((_, i) => selected.add(i));
+    $("photos").querySelectorAll(".tile").forEach((t) => t.classList.add("sel"));
+    updateBar();
+  }
+});
+
+async function moveSelected(to) {
+  const files = [...selected].map((i) => loaded[i].name), from = current.name;
+  if (!files.length) return;
+  closeSheet();
+  try {
+    const r = await api("/api/move", { from, files, to });
+    const dest = to === "_unknown" ? "Unassigned" : to;
+    toast(`Moved ${r.moved} ${r.moved === 1 ? "item" : "items"} to ${dest}` + (r.learned ? " · learned" : ""));
+    await loadPeople();
+    if (r.removed_src || !people.some((p) => p.name === from)) { showPeople(); return; }
+    openPerson(from, false);
+  } catch (err) { toast(err.message, true); }
+}
+$("removeBtn").onclick = () => moveSelected("_unknown");
+$("moveBtn").onclick = openSheet;
+
+function openSheet() {
+  $("sheetSub").textContent = `${selected.size} ${selected.size === 1 ? "item" : "items"} from ${current.named ? current.name : "this person"}. ` +
+    "The faces are added to the person you pick, and remembered so they aren’t mixed up again.";
+  $("newName").value = ""; $("sheetQ").value = ""; renderSheet();
+  $("sheetBg").classList.add("show"); $("newName").focus();
+}
+function closeSheet() { $("sheetBg").classList.remove("show"); }
+function renderSheet() {
+  const q = $("sheetQ").value.trim().toLowerCase();
+  const list = people.filter((p) => p.name !== current.name && (!q || p.name.toLowerCase().includes(q) || (!p.named && "add name".includes(q))))
+    .sort((a, b) => (b.named - a.named) || (b.files - a.files)).slice(0, 200);
+  $("sheetList").innerHTML = list.map((p) => `
+    <button class="row" data-name="${escapeHtml(p.name)}">
+      <div class="avatar">${p.thumb ? `<img loading="lazy" src="/thumb/${enc(p.name)}" alt="">` : ""}</div>
+      <div><div class="rn ${p.named ? "" : "add"}">${escapeHtml(p.named ? p.name : p.name.replace("_", " "))}</div>
+           <div class="rc">${fmt(p.files)} items</div></div>
+    </button>`).join("") || `<div class="empty" style="padding:30px 0">No one matches.</div>`;
+}
+$("sheetQ").addEventListener("input", renderSheet);
+$("sheetList").addEventListener("click", (e) => { const r = e.target.closest(".row"); if (r) moveSelected(r.dataset.name); });
+$("sheetClose").onclick = closeSheet;
+$("sheetBg").addEventListener("click", (e) => { if (e.target === $("sheetBg")) closeSheet(); });
+$("newGo").onclick = () => { const n = $("newName").value.trim(); if (n) moveSelected(n); else $("newName").focus(); };
+$("newName").addEventListener("keydown", (e) => { if (e.key === "Enter") $("newGo").click(); if (e.key === "Escape") closeSheet(); });
+
+/* ---------- train ---------- */
+const pct = (x) => (x * 100).toFixed(x >= 0.995 ? 0 : 1) + "%";
+function showModel(r) {
+  const el = $("model");
+  if (!r || r.error) { el.hidden = !r; if (r) el.textContent = "Model: " + r.error; return; }
+  let s = `Model: trained on <b>${fmt(r.faces)}</b> faces of <b>${r.people}</b> people (${r.trained_at})`;
+  if (r.accuracy_when_confident != null)
+    s += ` · <b>${pct(r.accuracy_when_confident)}</b> right on photos it hadn’t seen when sure (${pct(r.confident_share)} of them)`;
+  if (r.accuracy_on_corrections != null) s += ` · <b>${pct(r.accuracy_on_corrections)}</b> on your ${fmt(r.corrections_tested)} corrections`;
+  const conf = Object.entries(r.most_confused || {}).slice(0, 3).map(([k, v]) => `${escapeHtml(k)} (${v})`);
+  if (conf.length) s += ` · mixes up: ${conf.join(", ")}`;
+  el.innerHTML = s; el.hidden = false;
+}
+$("train").onclick = async () => {
+  const b = $("train"); if (b.disabled) return;
+  b.disabled = true; b.textContent = "Training…";
+  try {
+    const r = await fetch("/api/train", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).then((x) => x.json());
+    showModel(r);
+    if (r.error) toast(r.error, true);
+    else toast(`Learned ${r.people} people — press Re-sort to apply`);
+  } catch (err) { toast(err.message, true); }
+  b.disabled = false; b.textContent = "Train";
+};
+
+/* ---------- re-sort ---------- */
+let resortTimer = null;
+$("resort").onclick = async () => {
+  if ($("resort").disabled) return;
+  try { await api("/api/resort", {}); } catch (err) { toast(err.message, true); return; }
+  watchResort();
+};
+function watchResort() {
+  $("resort").disabled = true; $("resort").textContent = "Re-sorting…";
+  $("progress").classList.add("show");
+  clearTimeout(resortTimer);
+  (async function poll() {
+    let s;
+    try { s = await api("/api/resort/status"); } catch { resortTimer = setTimeout(poll, 3000); return; }
+    $("progressLine").textContent = s.line || "";
+    if (s.running) { resortTimer = setTimeout(poll, 1500); return; }
+    $("resort").disabled = false; $("resort").textContent = "Re-sort";
+    $("progress").classList.remove("show");
+    if (s.code === 0) { toast("Re-sort finished"); } else { toast(s.line || "Re-sort failed", true); }
+    await loadPeople();
+    if (current) openPerson(current.name, false);
+  })();
+}
+
+$("back").onclick = () => history.back();
+function showPeople(push = true) {
+  current = null; endSelect();
+  $("detailView").hidden = true; $("barDetail").hidden = true;
+  $("peopleView").hidden = false; $("barPeople").hidden = false;
+  if (push) history.pushState({}, "", location.pathname);
+}
+window.addEventListener("popstate", (e) => {
+  closeViewer(); closeSheet();
+  const h = decodeURIComponent(location.hash.slice(1));
+  const name = (e.state && e.state.person) || (h && people.some((p) => p.name === h) ? h : null);
+  if (name) openPerson(name, false); else showPeople(false);
+});
+
+$("openAll").onclick = () => api("/api/open", {});
+$("openOne").onclick = () => api("/api/open", { name: current.name });
+
+/* ---------- viewer ---------- */
+let vIndex = 0;
+function openViewer(i) {
+  vIndex = (i + loaded.length) % loaded.length;
+  const f = loaded[vIndex], src = `/media/${enc(current.name)}/${enc(f.name)}`;
+  $("vBody").innerHTML = f.video ? `<video src="${src}" controls autoplay playsinline></video>` : `<img src="${src}" alt="">`;
+  $("vCap").textContent = `${vIndex + 1} of ${fmt(total)}`;
+  $("viewer").classList.add("show");
+}
+function closeViewer() { $("viewer").classList.remove("show"); $("vBody").innerHTML = ""; }
+$("vClose").onclick = closeViewer;
+$("vPrev").onclick = () => openViewer(vIndex - 1);
+$("vNext").onclick = () => openViewer(vIndex + 1);
+$("viewer").addEventListener("click", (e) => { if (e.target === $("viewer")) closeViewer(); });
+document.addEventListener("keydown", (e) => {
+  if (!$("viewer").classList.contains("show")) return;
+  if (e.key === "Escape") closeViewer();
+  if (e.key === "ArrowLeft") openViewer(vIndex - 1);
+  if (e.key === "ArrowRight") openViewer(vIndex + 1);
+});
+
+loadPeople().then(() => {
+  const h = decodeURIComponent(location.hash.slice(1));
+  if (h && people.some((p) => p.name === h)) { history.replaceState({ person: h }, "", "#" + enc(h)); openPerson(h, false); }
+}).catch((e) => { $("summary").textContent = "Could not load: " + e.message; });
+</script>
+</body>
+</html>

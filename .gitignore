@@ -1,0 +1,19 @@
+# environment and caches
+.venv/
+__pycache__/
+*.pyc
+
+# downloaded models (buffalo_l is non-commercial; both download/are fetched on first use)
+models/
+
+# test data and generated output
+tests/
+
+# local notes with personal folder names
+CLAUDE.md
+
+# sorter output, if pointed inside the project
+*_sorted/
+.embeddings_cache.pkl
+.appearance_cache.pkl
+classifier.pkl

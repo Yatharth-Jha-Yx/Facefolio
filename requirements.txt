@@ -1,0 +1,7 @@
+insightface
+onnxruntime            # CPU. On Windows with a GPU, install onnxruntime-directml instead (then use --gpu N)
+opencv-python
+scikit-learn
+numpy
+tqdm
+pillow-heif            # HEIF/HEIC photos
